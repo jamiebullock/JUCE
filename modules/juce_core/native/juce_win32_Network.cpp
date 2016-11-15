@@ -294,8 +294,8 @@ private:
     {
         const TCHAR* mimeTypes[] = { _T("*/*"), nullptr };
 
-        DWORD flags = INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_COOKIES
-                        | INTERNET_FLAG_NO_AUTO_REDIRECT | SECURITY_SET_MASK;
+		DWORD flags = INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_AUTO_REDIRECT 
+			| SECURITY_SET_MASK;
 
         if (address.startsWithIgnoreCase ("https:"))
             flags |= INTERNET_FLAG_SECURE;  // (this flag only seems necessary if the OS is running IE6 -
