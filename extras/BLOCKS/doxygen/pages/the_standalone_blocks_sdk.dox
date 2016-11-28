@@ -17,8 +17,13 @@ For MacOS and Linux this will produce <tt>libBLOCKS-SDK.a</tt> in either a <tt>D
 @section standalone_using_header Using the SDK header file
 
 To use BLOCKS classes and functions in your application you must include the <tt>BlocksHeader.h</tt> file in your source code.
+<<<<<<< HEAD
 You must also tell the compiler to look in the <tt>SDK/</tt> directory for additional header files, which you can configure inside your XCode or Visual Studio project.
 If you are using the command line to compile your application then you can see an example of how to do this in <tt>examples/BLOCKS-SDK/BlockFinder/Linux/Makefile</tt> (which is also appropriate for MacOS, despite being located inside the Linux directory).
+=======
+You must also tell the compiler to look in the <tt>BLOCKS-SDK-static/JuceLibraryCode/</tt> and <tt>BLOCKS-SDK-static/JuceLibraryCode/modules</tt> directories for additional header files, which you can configure inside your XCode or Visual Studio project.
+If you are using the command line to compile your application then you can see an example of how to do this in <tt>examples/BLOCKS-SDK/BlockFinder/LinuxMakefile/Makefile</tt> (which is also appropriate for MacOS, despite being located inside the Linux directory).
+>>>>>>> Fixed a typo in the BLOCKS documentation
 
 @section standalone_linking Linking against the SDK library
 
