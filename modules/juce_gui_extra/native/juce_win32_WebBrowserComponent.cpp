@@ -246,6 +246,11 @@ void WebBrowserComponent::goToURL (const String& url,
     browser->goToURL (url, headers, postData);
 }
 
+void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)
+{
+    // set the user agent
+}
+
 void WebBrowserComponent::stop()
 {
     if (browser->browser != nullptr)

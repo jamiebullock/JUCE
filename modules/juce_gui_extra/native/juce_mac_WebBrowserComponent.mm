@@ -266,6 +266,18 @@ public:
            #endif
         }
     }
+    
+    void setUserAgent (const String& userAgent, bool append)
+    {
+        if (append)
+        {
+            [webView setApplicationNameForUserAgent: juceStringToNS (userAgent)];
+        }
+        else
+        {
+            [webView setCustomUserAgent: juceStringToNS (userAgent)];
+        }
+    }
 
     void goBack()       { [webView goBack]; }
     void goForward()    { [webView goForward]; }
@@ -334,6 +346,11 @@ void WebBrowserComponent::goToURL (const String& url,
     blankPageShown = false;
 
     browser->goToURL (url, headers, postData);
+}
+    
+void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)
+{
+    browser->setUserAgent(userAgent, append);
 }
 
 void WebBrowserComponent::stop()

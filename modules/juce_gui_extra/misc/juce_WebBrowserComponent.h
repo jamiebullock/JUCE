@@ -68,6 +68,15 @@ public:
                   const StringArray* headers = nullptr,
                   const MemoryBlock* postData = nullptr);
 
+    
+    /** Set a custom User-Agent header field
+     
+        @param userAgent    the User-Agent string to set, e.g. MyApp/1.0.0
+        @param append       determines whether the userAgent string is appended to
+                            the existing UA string, or replaces it
+     */
+    void setUserAgent(const String& userAgent, bool append = true);
+    
     /** Stops the current page loading. */
     void stop();
 
