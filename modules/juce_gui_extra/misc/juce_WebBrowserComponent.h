@@ -98,6 +98,7 @@ public:
         return true, or return false to stop the navigation happening.
     */
     virtual bool pageAboutToLoad (const String& newURL);
+    virtual bool pageAboutToLoad2 (const String& sourceURL, const String& newURL);
 
     /** This callback happens when the browser has finished loading a page. */
     virtual void pageFinishedLoading (const String& url);

@@ -53,10 +53,16 @@ private:
         return String();
     }
 
-    static void decidePolicyForNavigationAction (id self, SEL, WebView*, NSDictionary* actionInformation,
-                                                 NSURLRequest*, WebFrame*, id<WebPolicyDecisionListener> listener)
+    static String getTargetURL (NSURLRequest* request)
     {
-        if (getOwner (self)->pageAboutToLoad (getOriginalURL (actionInformation)))
+        if (!request) return String();
+        return nsStringToJuce(request.URL.absoluteString);
+    }
+    
+    static void decidePolicyForNavigationAction (id self, SEL, WebView*, NSDictionary* actionInformation,
+                                                 NSURLRequest* request, WebFrame*, id<WebPolicyDecisionListener> listener)
+    {
+        if (getOwner (self)->pageAboutToLoad2 (getOriginalURL (actionInformation), getTargetURL(request)))
             [listener use];
         else
             [listener ignore];
