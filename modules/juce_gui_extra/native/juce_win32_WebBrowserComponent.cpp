@@ -394,8 +394,9 @@ public:
                 }
             }
 
-            browser->Navigate ((BSTR) (const OLECHAR*) url.toWideCharPointer(),
-                               &headerFlags, &frame, &postDataVar, &headersVar);
+            BSTR urlBSTR = SysAllocString ((const OLECHAR*) url.toWideCharPointer());
+            browser->Navigate (urlBSTR, &headerFlags, &frame, &postDataVar, &headersVar);
+            SysFreeString (urlBSTR);
 
             if (sa != nullptr)
                 SafeArrayDestroy (sa);
