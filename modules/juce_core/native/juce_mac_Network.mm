@@ -881,15 +881,23 @@ public:
         connection = nullptr;
     }
 
-    bool connect (WebInputStream::Listener* webInputListener)
+    bool connect (WebInputStream::Listener* webInputListener, int attemptNumber = 0)
     {
-        createConnection ();
+        createConnection();
         if (! connection->start (owner, webInputListener))
         {
+            // Workaround for deployment targets below 10.10 where HTTPS POST requests with keep-alive fail with the NSURLErrorNetworkConnectionLost error code.
+           #if ! (JUCE_IOS || (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10))
+            if (attemptNumber == 0 && connection->nsUrlErrorCode == NSURLErrorNetworkConnectionLost)
+            {
+                connection = nullptr;
+                return connect (webInputListener, ++attemptNumber);
+            }
+           #endif
+
             connection = nullptr;
             return false;
         }
-
 
         if (connection != nullptr && connection->headers != nil)
         {
