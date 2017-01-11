@@ -1016,6 +1016,15 @@ private:
         {
             [req setHTTPMethod: [NSString stringWithUTF8String: httpRequestCmd.toRawUTF8()]];
 
+            if (isPost)
+            {
+                WebInputStream::createHeadersAndPostData (url, headers, postData);
+
+                if (postData.getSize() > 0)
+                    [req setHTTPBody: [NSData dataWithBytes: postData.getData()
+                                                     length: postData.getSize()]];
+            }
+
             StringArray headerLines;
             headerLines.addLines (headers);
             headerLines.removeEmptyStrings (true);
@@ -1029,6 +1038,7 @@ private:
                     [req addValue: juceStringToNS (value) forHTTPHeaderField: juceStringToNS (key)];
             }
 
+<<<<<<< HEAD
             if (isPost)
             {
                 WebInputStream::createHeadersAndPostData (url, headers, postData);
@@ -1039,6 +1049,8 @@ private:
             }
 
 <<<<<<< HEAD
+=======
+>>>>>>> Fixed bug in OSX network code where Content-Type headers were not being added to HTTP POST requests unless specified manually and renamed a variable in URL::createHeadersAndPostData() method
             connection = new URLConnectionState (req, numRedirectsToFollow);
 =======
             if (! connection->start (progressCallback, progressCallbackContext))
