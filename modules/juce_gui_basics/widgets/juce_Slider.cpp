@@ -570,6 +570,7 @@ public:
             valueBox->setTooltip (owner.getTooltip());
             updateTextBoxEnablement();
             valueBox->addListener (this);
+            valueBox->addMouseListener(&owner, false);
 
             if (style == LinearBar || style == LinearBarVertical)
             {
