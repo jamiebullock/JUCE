@@ -248,7 +248,8 @@ void WebBrowserComponent::goToURL (const String& url,
 
 void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)
 {
-    // set the user agent
+    // Implementation not required on Windows, since unlike WebKit IWebBrowser doesn't
+	// overwrite the User-Agent supplied in the "headers" field for Navigate()
 }
 
 void WebBrowserComponent::stop()
