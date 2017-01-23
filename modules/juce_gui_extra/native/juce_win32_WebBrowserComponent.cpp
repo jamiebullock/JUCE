@@ -73,6 +73,11 @@ public:
         }
     }
 
+	void setUserAgent(const String& userAgent)
+	{
+		UrlMkSetSessionOption(URLMON_OPTION_USERAGENT, (LPVOID)userAgent.toStdString().c_str(), userAgent.length(), 0);
+	}
+
     void goToURL (const String& url,
                   const StringArray* headers,
                   const MemoryBlock* postData)
@@ -248,8 +253,7 @@ void WebBrowserComponent::goToURL (const String& url,
 
 void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)
 {
-    // Implementation not required on Windows, since unlike WebKit IWebBrowser doesn't
-	// overwrite the User-Agent supplied in the "headers" field for Navigate()
+	browser->setUserAgent(userAgent);
 }
 
 void WebBrowserComponent::stop()
