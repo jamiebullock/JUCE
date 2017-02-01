@@ -42,9 +42,12 @@ public:
         connectionPoint (nullptr),
         adviseCookie (0)
     {
+		
 		keyboardHook = SetWindowsHookEx(WH_GETMESSAGE, keyboardHookCallback,
 			(HINSTANCE)Process::getCurrentModuleInstanceHandle(),
 			GetCurrentThreadId());
+			
+			
     }
 	
     ~Pimpl()
@@ -55,26 +58,182 @@ public:
         if (browser != nullptr)
             browser->Release();
     }
-/*
+
+	static bool handleKeyDown(const WPARAM key, HWND target)
+	{
+		bool used = false;
+
+		switch (key)
+		{
+		/*case VK_TAB:
+		{
+			
+			}
+			used = true;
+				break;*/
+
+		case VK_SHIFT:
+		case VK_LSHIFT:
+		case VK_RSHIFT:
+		case VK_CONTROL:
+		case VK_LCONTROL:
+		case VK_RCONTROL:
+		case VK_MENU:
+		case VK_LMENU:
+		case VK_RMENU:
+		case VK_LWIN:
+		case VK_RWIN:
+		case VK_CAPITAL:
+		case VK_NUMLOCK:
+		case VK_SCROLL:
+		case VK_APPS:
+		//	used = false;
+			break;
+
+		case VK_ESCAPE:
+		case VK_TAB:
+		case VK_LEFT:
+		case VK_RIGHT:
+		case VK_UP:
+		case VK_DOWN:
+		case VK_PRIOR:
+		case VK_NEXT:
+		case VK_HOME:
+		case VK_END:
+		case VK_DELETE:
+		case VK_INSERT:
+		case VK_BACK:
+		//case VK_F1:
+		//case VK_F2:
+		//case VK_F3:
+		//case VK_F4:
+		//case VK_F5:
+		//case VK_F6:
+		//case VK_F7:
+		//case VK_F8:
+		//case VK_F9:
+		//case VK_F10:
+		//case VK_F11:
+		//case VK_F12:
+		//case VK_F13:
+		//case VK_F14:
+		//case VK_F15:
+		//case VK_F16:
+			//used = handleKeyUpOrDown(true);
+			//used = handleKeyPress(extendedKeyModifier | (int)key, 0) || used;
+			SendMessage(target, WM_KEYDOWN, (WPARAM)key, 0);
+			used = true;
+			break;
+
+		default:
+			//used = handleKeyUpOrDown(true);
+
+			{
+				MSG msg;
+				if (!PeekMessage(&msg, NULL, WM_CHAR, WM_DEADCHAR, PM_NOREMOVE))
+				{
+					// if there isn't a WM_CHAR or WM_DEADCHAR message pending, we need to
+					// manually generate the key-press event that matches this key-down.
+					const UINT keyChar = MapVirtualKey((UINT)key, 2);
+					const UINT scanCode = MapVirtualKey((UINT)key, 0);
+					BYTE keyState[256];
+					GetKeyboardState(keyState);
+
+					WCHAR text[16] = { 0 };
+					if (ToUnicode((UINT)key, scanCode, keyState, text, 8, 0) != 1)
+						text[0] = 0;
+					SendMessage(target, WM_CHAR, *text, 0);
+					used = true;
+
+					//used = handleKeyPress((int)LOWORD(keyChar), (juce_wchar)text[0]) || used;
+				}
+			}
+
+			break;
+		}
+		
+		return used;
+	}
+
+	static bool handleKeyUp(const WPARAM key, HWND target)
+	{
+		bool used = false;
+
+		switch (key)
+		{
+		case VK_SHIFT:
+		case VK_LSHIFT:
+		case VK_RSHIFT:
+		case VK_CONTROL:
+		case VK_LCONTROL:
+		case VK_RCONTROL:
+		case VK_MENU:
+		case VK_LMENU:
+		case VK_RMENU:
+		case VK_LWIN:
+		case VK_RWIN:
+		case VK_CAPITAL:
+		case VK_NUMLOCK:
+		case VK_SCROLL:
+		case VK_APPS:
+			break;
+		default:
+			used = true;
+		}
+
+		return used;
+	}
+
 	static bool offerKeyMessageToBrowserWindow(MSG& m)
 	{
 		if (m.message == WM_KEYDOWN || m.message == WM_KEYUP)
-			if (Component::getCurrentlyFocusedComponent() != nullptr)
-				if (HWNDComponentPeer* h = getOwnerOfWindow(m.hwnd))
-					return m.message == WM_KEYDOWN ? h->doKeyDown(m.wParam)
-					: h->doKeyUp(m.wParam);
+		{
+			if (sBrowser != nullptr)
+			{
+				HWND newHandle = GetFocus();
+				
+				if (newHandle != NULL)
+				{
+					char class_name[256];
+					GetClassNameA(newHandle, class_name, 256);
 
+					if (String(class_name) != "Internet Explorer_Server")
+					{
+						return false;
+					}
+
+					IOleInPlaceActiveObject* pIOIPAO;
+
+					// Needed to make Tab key work
+					HRESULT hr = sBrowser->QueryInterface(IID_IOleInPlaceActiveObject, (void**)&pIOIPAO);
+					if (SUCCEEDED(hr))
+					{
+						if (pIOIPAO->TranslateAccelerator(&m) == 0)
+						{
+							TranslateMessage(&m);
+							//DispatchMessage(&m);
+						}
+						pIOIPAO->Release();
+					}
+
+					return m.message == WM_KEYDOWN ? handleKeyDown(m.wParam, newHandle) : handleKeyUp(m.wParam, newHandle);
+				}
+			}
+		}
 		return false;
 	}
-	*/
+	
 
 	static LRESULT CALLBACK keyboardHookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 	{
 		MSG& msg = *(MSG*)lParam;
 
-		if (nCode == HC_ACTION && wParam == PM_REMOVE)
-			//&& offerKeyMessageToJUCEWindow(msg))
+		
+		if (nCode == HC_ACTION && wParam == PM_REMOVE
+			&& offerKeyMessageToBrowserWindow(msg))
 		{
+
+		/*
 			if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP)
 			{
 				const WPARAM key = msg.wParam;
@@ -101,7 +260,6 @@ public:
 							{
 								SendMessage(newHandle, WM_CHAR, *text, 0);
 							}
-							//PostMessage(newHandle, msg.message, msg.wParam, msg.lParam);
 						}
 						else
 						{
@@ -114,11 +272,11 @@ public:
 					DBG("PEEKED");
 				}
 
-				
+				*/
 				zerostruct(msg);
 				msg.message = WM_USER;
 				return 1;
-			}
+			//}
 		}
 
 		return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
@@ -273,8 +431,6 @@ private:
 
                 return S_OK;
             }
-
-			DBG("EVENT: " << dispIdMember);
 
             return E_NOTIMPL;
         }
