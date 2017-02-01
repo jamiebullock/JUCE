@@ -22,10 +22,17 @@
   ==============================================================================
 */
 
+
+
+
+
 JUCE_COMCLASS (DWebBrowserEvents2,        "34A715A0-6587-11D0-924A-0020AFC7AC4D")
 JUCE_COMCLASS (IConnectionPointContainer, "B196B284-BAB4-101A-B69C-00AA00341D07")
 JUCE_COMCLASS (IWebBrowser2,              "D30C1661-CDAF-11D0-8A3E-00C04FC9E26E")
 JUCE_COMCLASS (WebBrowser,                "8856F961-340A-11D0-A96B-00C04FD705A2")
+
+static HHOOK mouseWheelHook = 0, keyboardHook = 0;
+
 
 class WebBrowserComponent::Pimpl   : public ActiveXControlComponent
 {
@@ -35,8 +42,11 @@ public:
         connectionPoint (nullptr),
         adviseCookie (0)
     {
+		keyboardHook = SetWindowsHookEx(WH_GETMESSAGE, keyboardHookCallback,
+			(HINSTANCE)Process::getCurrentModuleInstanceHandle(),
+			GetCurrentThreadId());
     }
-
+	
     ~Pimpl()
     {
         if (connectionPoint != nullptr)
@@ -45,6 +55,74 @@ public:
         if (browser != nullptr)
             browser->Release();
     }
+/*
+	static bool offerKeyMessageToBrowserWindow(MSG& m)
+	{
+		if (m.message == WM_KEYDOWN || m.message == WM_KEYUP)
+			if (Component::getCurrentlyFocusedComponent() != nullptr)
+				if (HWNDComponentPeer* h = getOwnerOfWindow(m.hwnd))
+					return m.message == WM_KEYDOWN ? h->doKeyDown(m.wParam)
+					: h->doKeyUp(m.wParam);
+
+		return false;
+	}
+	*/
+
+	static LRESULT CALLBACK keyboardHookCallback(int nCode, WPARAM wParam, LPARAM lParam)
+	{
+		MSG& msg = *(MSG*)lParam;
+
+		if (nCode == HC_ACTION && wParam == PM_REMOVE)
+			//&& offerKeyMessageToJUCEWindow(msg))
+		{
+			if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP)
+			{
+				const WPARAM key = msg.wParam;
+				if (!PeekMessage(&msg, NULL, WM_CHAR, WM_DEADCHAR, PM_NOREMOVE))
+				{
+					const UINT keyChar = MapVirtualKey((UINT)key, 2);
+					const UINT scanCode = MapVirtualKey((UINT)key, 0);
+					BYTE keyState[256];
+					GetKeyboardState(keyState);
+
+					WCHAR text[16] = { 0 };
+
+					if (ToUnicode((UINT)key, scanCode, keyState, text, 8, 0) != 1)
+						text[0] = 0;
+					DBG("KEY: " << text);
+
+					if (sBrowser != nullptr)
+					{
+						HWND newHandle = GetFocus();
+
+						if (newHandle != NULL)
+						{
+							if (msg.message == WM_KEYDOWN)
+							{
+								SendMessage(newHandle, WM_CHAR, *text, 0);
+							}
+							//PostMessage(newHandle, msg.message, msg.wParam, msg.lParam);
+						}
+						else
+						{
+							DBG("COULDN'T GET WINDOW HANDLE");
+						}
+					}
+				}
+				else
+				{
+					DBG("PEEKED");
+				}
+
+				
+				zerostruct(msg);
+				msg.message = WM_USER;
+				return 1;
+			}
+		}
+
+		return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
+	}
 
     void createBrowser()
     {
@@ -55,6 +133,9 @@ public:
     GUID iidConnectionPointContainer = __uuidof (IConnectionPointContainer);
 
         browser = (IWebBrowser2*) queryInterface (&iidWebBrowser2);
+		sBrowser = browser;
+		sThis = this;
+		
 
         if (IConnectionPointContainer* connectionPointContainer
             = (IConnectionPointContainer*) queryInterface (&iidConnectionPointContainer))
@@ -142,6 +223,11 @@ public:
 private:
     IConnectionPoint* connectionPoint;
     DWORD adviseCookie;
+	static IWebBrowser2* sBrowser;
+	static ActiveXControlComponent* sThis;
+
+
+
 
     //==============================================================================
     struct EventHandler  : public ComBaseClassHelper<IDispatch>,
@@ -188,6 +274,8 @@ private:
                 return S_OK;
             }
 
+			DBG("EVENT: " << dispIdMember);
+
             return E_NOTIMPL;
         }
 
@@ -210,6 +298,8 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Pimpl)
 };
 
+IWebBrowser2 *WebBrowserComponent::Pimpl::sBrowser = nullptr;
+ActiveXControlComponent *WebBrowserComponent::Pimpl::sThis = nullptr;
 
 //==============================================================================
 WebBrowserComponent::WebBrowserComponent (const bool unloadPageWhenBrowserIsHidden_)
@@ -364,6 +454,7 @@ void WebBrowserComponent::focusGained (FocusChangeType)
                 HWND hwnd;
                 oleWindow->GetWindow (&hwnd);
                 oleObject->DoVerb (OLEIVERB_UIACTIVATE, nullptr, oleClientSite, 0, hwnd, nullptr);
+
                 oleClientSite->Release();
             }
 
