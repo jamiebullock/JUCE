@@ -43,6 +43,8 @@ public:
         adviseCookie (0)
     {
 		
+		
+
 		keyboardHook2 = SetWindowsHookEx(WH_GETMESSAGE, keyboardHookCallback,
 			(HINSTANCE)Process::getCurrentModuleInstanceHandle(),
 			GetCurrentThreadId());
@@ -323,6 +325,7 @@ public:
 		sBrowser = browser;
 		sThis = this;
 		
+		browser->put_Silent(VARIANT_TRUE);
 
         if (IConnectionPointContainer* connectionPointContainer
             = (IConnectionPointContainer*) queryInterface (&iidConnectionPointContainer))
