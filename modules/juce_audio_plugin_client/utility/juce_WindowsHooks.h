@@ -41,9 +41,9 @@ namespace
         {
             if (numHookUsers++ == 0)
             {
-                mouseWheelHook = SetWindowsHookEx (WH_MOUSE, mouseWheelHookCallback,
+              /*  mouseWheelHook = SetWindowsHookEx (WH_MOUSE, mouseWheelHookCallback,
                                                    (HINSTANCE) Process::getCurrentModuleInstanceHandle(),
-                                                   GetCurrentThreadId());
+                                                   GetCurrentThreadId());*/
 
                 keyboardHook = SetWindowsHookEx (WH_GETMESSAGE, keyboardHookCallback,
                                                  (HINSTANCE) Process::getCurrentModuleInstanceHandle(),
