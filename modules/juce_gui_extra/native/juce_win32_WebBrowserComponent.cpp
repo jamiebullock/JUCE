@@ -31,7 +31,7 @@ JUCE_COMCLASS (IConnectionPointContainer, "B196B284-BAB4-101A-B69C-00AA00341D07"
 JUCE_COMCLASS (IWebBrowser2,              "D30C1661-CDAF-11D0-8A3E-00C04FC9E26E")
 JUCE_COMCLASS (WebBrowser,                "8856F961-340A-11D0-A96B-00C04FD705A2")
 
-static HHOOK mouseWheelHook = 0, keyboardHook = 0;
+static HHOOK mouseWheelHook2 = 0, keyboardHook2 = 0;
 
 
 class WebBrowserComponent::Pimpl   : public ActiveXControlComponent
@@ -43,15 +43,25 @@ public:
         adviseCookie (0)
     {
 		
-		keyboardHook = SetWindowsHookEx(WH_GETMESSAGE, keyboardHookCallback,
+		keyboardHook2 = SetWindowsHookEx(WH_GETMESSAGE, keyboardHookCallback,
 			(HINSTANCE)Process::getCurrentModuleInstanceHandle(),
 			GetCurrentThreadId());
-			
-			
+	/*	
+		mouseWheelHook2 = SetWindowsHookEx(WH_MOUSE, mouseWheelHookCallback,
+			NULL,
+			GetCurrentThreadId());
+		*/	
+
     }
 	
     ~Pimpl()
     {
+		if (keyboardHook2 != 0)
+		{
+			UnhookWindowsHookEx(keyboardHook2);
+			keyboardHook2 = 0;
+		}
+
         if (connectionPoint != nullptr)
             connectionPoint->Unadvise (adviseCookie);
 
@@ -223,6 +233,67 @@ public:
 		return false;
 	}
 	
+	static LRESULT CALLBACK mouseWheelHookCallback(int nCode, WPARAM wParam, LPARAM lParam)
+	{
+		if (nCode >= 0)
+		{
+			DBG("PARAM: " << wParam);
+
+			if (wParam == WM_MOUSEWHEEL || wParam == 0x020E)
+			{
+				// using a local copy of this struct to support old mingw libraries
+				struct MOUSEHOOKSTRUCTEX_ : public MOUSEHOOKSTRUCT { DWORD mouseData; };
+
+				const MOUSEHOOKSTRUCTEX_& hs = *(MOUSEHOOKSTRUCTEX_*)lParam;
+
+				if (sBrowser != nullptr)
+				{
+					HWND newHandle = GetFocus();
+
+					if (newHandle != NULL)
+					{
+						char class_name[256];
+						GetClassNameA(newHandle, class_name, 256);
+
+						DBG("CLASS: " << String(class_name));
+
+						//if (String(class_name) != "Internet Explorer_Server")
+						//{
+							//return false;
+						//}
+						//else
+						//{
+							DBG("SCROLLY X: " << hs.pt.x << " Y: " << hs.pt.y);
+
+							MOUSEHOOKSTRUCTEX *pMhs = (MOUSEHOOKSTRUCTEX *)lParam;
+							short zDelta = HIWORD(pMhs->mouseData);
+							POINT pt;
+							GetCursorPos(&pt);
+							LPARAM mlParam = MAKELPARAM(pt.x, pt.y);
+
+							HWND hWnd = WindowFromPoint(pt);
+
+							//b = FALSE;
+							return SendMessage(newHandle, WM_MOUSEWHEEL, zDelta, mlParam);
+
+
+						//	return PostMessage(newHandle, WM_MOUSEWHEEL, hs.mouseData & 0xffff0000, (hs.pt.x & 0xffff) | (hs.pt.y << 16));
+						//}
+
+
+						//if (Component* const comp = Desktop::getInstance().findComponentAt(Point<int>(hs.pt.x, hs.pt.y)))
+						//{
+						//	if (comp->getWindowHandle() != 0)
+							//{
+								//return PostMessage((HWND)comp->getWindowHandle(), WM_MOUSEWHEEL,
+									//hs.mouseData & 0xffff0000, (hs.pt.x & 0xffff) | (hs.pt.y << 16));
+					}
+				}
+			}
+		}
+
+		return CallNextHookEx(mouseWheelHook2, nCode, wParam, lParam);
+	}
 
 	static LRESULT CALLBACK keyboardHookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 	{
@@ -232,54 +303,12 @@ public:
 		if (nCode == HC_ACTION && wParam == PM_REMOVE
 			&& offerKeyMessageToBrowserWindow(msg))
 		{
-
-		/*
-			if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP)
-			{
-				const WPARAM key = msg.wParam;
-				if (!PeekMessage(&msg, NULL, WM_CHAR, WM_DEADCHAR, PM_NOREMOVE))
-				{
-					const UINT keyChar = MapVirtualKey((UINT)key, 2);
-					const UINT scanCode = MapVirtualKey((UINT)key, 0);
-					BYTE keyState[256];
-					GetKeyboardState(keyState);
-
-					WCHAR text[16] = { 0 };
-
-					if (ToUnicode((UINT)key, scanCode, keyState, text, 8, 0) != 1)
-						text[0] = 0;
-					DBG("KEY: " << text);
-
-					if (sBrowser != nullptr)
-					{
-						HWND newHandle = GetFocus();
-
-						if (newHandle != NULL)
-						{
-							if (msg.message == WM_KEYDOWN)
-							{
-								SendMessage(newHandle, WM_CHAR, *text, 0);
-							}
-						}
-						else
-						{
-							DBG("COULDN'T GET WINDOW HANDLE");
-						}
-					}
-				}
-				else
-				{
-					DBG("PEEKED");
-				}
-
-				*/
 				zerostruct(msg);
 				msg.message = WM_USER;
 				return 1;
-			//}
 		}
 
-		return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
+		return CallNextHookEx(keyboardHook2, nCode, wParam, lParam);
 	}
 
     void createBrowser()
