@@ -387,7 +387,8 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
                             URL::DownloadTask::Listener* listenerToUse)
          : targetLocation (targetLocationToUse), listener (listenerToUse),
            delegate (nullptr), session (nullptr), downloadTask (nullptr),
-           connectFinished (false), hasBeenDestroyed (false), calledComplete (0)
+           connectFinished (false), hasBeenDestroyed (false), calledComplete (0),
+           uniqueIdentifier (String (urlToUse.toString (true).hashCode64()) + String (Random().nextInt64()))
     {
         downloaded = -1;
 
@@ -395,7 +396,7 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
         delegate = [cls.createInstance() init];
         DelegateClass::setState (delegate, this);
 
-        String uniqueIdentifier = String (urlToUse.toString (true).hashCode64()) + String (Random().nextInt64());
+        activeSessions.set (uniqueIdentifier, this);
         NSMutableURLRequest* request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:juceStringToNS (urlToUse.toString (true))]];
 
         StringArray headerLines;
@@ -424,6 +425,8 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
 
     ~BackgroundDownloadTask()
     {
+        activeSessions.remove (uniqueIdentifier);
+
         if (httpCode != -1)
             httpCode = 500;
 
@@ -461,6 +464,9 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
     bool connectFinished, hasBeenDestroyed;
     Atomic<int> calledComplete;
     WaitableEvent connectionEvent, destroyEvent;
+    String uniqueIdentifier;
+
+    static HashMap<String, BackgroundDownloadTask*, DefaultHashFunctions, CriticalSection> activeSessions;
 
     void didWriteData (int64 totalBytesWritten, int64 totalBytesExpectedToWrite)
     {
@@ -540,6 +546,34 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
     }
 
     //==============================================================================
+    void notify()
+    {
+        if (downloadTask == nullptr) return;
+
+        if (NSError* error = [downloadTask error])
+        {
+            didCompleteWithError (error);
+        }
+        else
+        {
+            const int64 contentLength = [downloadTask countOfBytesExpectedToReceive];
+
+            if ([downloadTask state] == NSURLSessionTaskStateCompleted)
+                didWriteData (contentLength, contentLength);
+            else
+                didWriteData ([downloadTask countOfBytesReceived], contentLength);
+        }
+    }
+
+    static void invokeNotify (const String& identifier)
+    {
+        ScopedLock lock (activeSessions.getLock());
+
+        if (BackgroundDownloadTask* task = activeSessions[identifier])
+            task->notify();
+    }
+
+    //==============================================================================
     struct DelegateClass  : public ObjCClass<NSObject<NSURLSessionDelegate> >
     {
         DelegateClass()  : ObjCClass<NSObject<NSURLSessionDelegate> > ("JUCE_URLDelegate_")
@@ -584,6 +618,8 @@ struct BackgroundDownloadTask  : public URL::DownloadTask
     };
 };
 
+HashMap<String, BackgroundDownloadTask*, DefaultHashFunctions, CriticalSection> BackgroundDownloadTask::activeSessions;
+
 URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener)
 {
     ScopedPointer<BackgroundDownloadTask> downloadTask = new BackgroundDownloadTask (*this, targetLocation, extraHeaders, listener);
@@ -592,6 +628,11 @@ URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extra
         return downloadTask.release();
 
     return nullptr;
+}
+
+void URL::DownloadTask::juce_iosURLSessionNotify (const String& identifier)
+{
+    BackgroundDownloadTask::invokeNotify (identifier);
 }
 #else
 URL::DownloadTask* URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener)
@@ -881,17 +922,19 @@ public:
         connection = nullptr;
     }
 
-    bool connect (WebInputStream::Listener* webInputListener, int attemptNumber = 0)
+    bool connect (WebInputStream::Listener* webInputListener, int numRetries = 0)
     {
+        ignoreUnused (numRetries);
         createConnection();
+
         if (! connection->start (owner, webInputListener))
         {
             // Workaround for deployment targets below 10.10 where HTTPS POST requests with keep-alive fail with the NSURLErrorNetworkConnectionLost error code.
            #if ! (JUCE_IOS || (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10))
-            if (attemptNumber == 0 && connection->nsUrlErrorCode == NSURLErrorNetworkConnectionLost)
+            if (numRetries == 0 && connection->nsUrlErrorCode == NSURLErrorNetworkConnectionLost)
             {
                 connection = nullptr;
-                return connect (webInputListener, ++attemptNumber);
+                return connect (webInputListener, ++numRetries);
             }
            #endif
 
@@ -983,9 +1026,6 @@ public:
 
     void cancel()
     {
-        if (finished || isError())
-            return;
-
         if (connection != nullptr)
             connection->cancel();
     }
@@ -1038,37 +1078,7 @@ private:
                     [req addValue: juceStringToNS (value) forHTTPHeaderField: juceStringToNS (key)];
             }
 
-<<<<<<< HEAD
-            if (isPost)
-            {
-                WebInputStream::createHeadersAndPostData (url, headers, postData);
-
-                if (postData.getSize() > 0)
-                    [req setHTTPBody: [NSData dataWithBytes: postData.getData()
-                                                     length: postData.getSize()]];
-            }
-
-<<<<<<< HEAD
-=======
->>>>>>> Fixed bug in OSX network code where Content-Type headers were not being added to HTTP POST requests unless specified manually and renamed a variable in URL::createHeadersAndPostData() method
             connection = new URLConnectionState (req, numRedirectsToFollow);
-=======
-            if (! connection->start (progressCallback, progressCallbackContext))
-            {
-                // Workaround for deployment targets below 10.10 where HTTPS POST requests with keep-alive fail with the NSURLErrorNetworkConnectionLost error code
-               #if ! (JUCE_IOS || (defined (__MAC_OS_X_VERSION_MIN_REQUIRED) && defined (__MAC_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_10))
-                if (connection->nsUrlErrorCode == NSURLErrorNetworkConnectionLost)
-                {
-                    connection = new URLConnectionState (req, numRedirectsToFollow);
-
-                    if (connection->start (progressCallback, progressCallbackContext))
-                        return;
-                }
-               #endif
-
-                connection = nullptr;
-            }
->>>>>>> Fix for HTTPS POST requests with keep-alive failing on OS X versions below 10.10
         }
     }
 
