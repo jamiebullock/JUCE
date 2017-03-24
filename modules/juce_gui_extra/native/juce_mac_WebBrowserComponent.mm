@@ -224,6 +224,22 @@ public:
         setView (nil);
     }
 
+    
+    void deleteCookie (const String& domain, const String& name)
+    {
+        NSHTTPCookieStorage* cookies = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+        NSArray *allCookies = [cookies cookies];
+        bool cookieFound = false;
+        for(NSHTTPCookie *cookie in allCookies)
+        {
+            if ([cookie.domain isEqualToString:juceStringToNS(domain)] && [cookie.name isEqualToString:juceStringToNS(name)])
+            {
+                [cookies deleteCookie:cookie];
+                cookieFound = true;
+            }
+        }
+    }
+    
     void goToURL (const String& url,
                   const StringArray* headers,
                   const MemoryBlock* postData)
@@ -359,6 +375,11 @@ void WebBrowserComponent::goToURL (const String& url,
     blankPageShown = false;
 
     browser->goToURL (url, headers, postData);
+}
+    
+void WebBrowserComponent::deleteCookie(const String& domain, const String& name)
+{
+    browser->deleteCookie(domain, name);
 }
     
 void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)

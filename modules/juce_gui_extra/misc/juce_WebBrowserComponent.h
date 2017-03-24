@@ -69,6 +69,14 @@ public:
                   const MemoryBlock* postData = nullptr);
 
     
+    /** Deletes a cookie matching the given domain and name 
+     
+        @param domain    the domain of the cookie to delete
+        @param name      the name of the cookie to delete
+     */
+    void deleteCookie(const String& domain,
+                      const String& name);
+    
     /** Set a custom User-Agent header field
      
         @param userAgent    the User-Agent string to set, e.g. MyApp/1.0.0
