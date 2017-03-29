@@ -25,7 +25,6 @@
 
 
 
-
 JUCE_COMCLASS (DWebBrowserEvents2,        "34A715A0-6587-11D0-924A-0020AFC7AC4D")
 JUCE_COMCLASS (IConnectionPointContainer, "B196B284-BAB4-101A-B69C-00AA00341D07")
 JUCE_COMCLASS (IWebBrowser2,              "D30C1661-CDAF-11D0-8A3E-00C04FC9E26E")
@@ -133,8 +132,8 @@ public:
 		//case VK_F16:
 			//used = handleKeyUpOrDown(true);
 			//used = handleKeyPress(extendedKeyModifier | (int)key, 0) || used;
-			SendMessage(target, WM_KEYDOWN, (WPARAM)key, 0);
-			used = true;
+			//SendMessage(target, WM_KEYDOWN, (WPARAM)key, 0);
+			//used = true;
 			break;
 
 		default:
@@ -349,6 +348,43 @@ public:
 		UrlMkSetSessionOption(URLMON_OPTION_USERAGENT, (LPVOID)userAgent.toStdString().c_str(), userAgent.length(), 0);
 	}
 
+	void deleteCookie(const String& domain,
+		const String& name)
+	{
+		/*
+		String uri = "https://" + domain;
+		LPCTSTR uriw = uri.toWideCharPointer();
+		LPCTSTR namew = name.toWideCharPointer();
+		DWORD wsize = 8192;
+		LPWSTR data = new WCHAR[wsize];
+
+		InternetSetOption(0, 42, NULL, 0);
+
+		InternetGetCookie(uriw, namew, data, &wsize);
+
+		std::wstring newvalue = std::wstring(data) + L";expires=Mon, 01 Jan 0001 00:00:00 GMT";
+		LPCWSTR newvaluew = newvalue.c_str();
+
+		std::wcout << data;
+		DBG("COOOKIE: " << String(newvalue.c_str()));
+
+		BOOL success = InternetSetCookie(uri.toWideCharPointer(), name.toWideCharPointer(), newvaluew);
+		if (success)
+		{
+			DBG("IT WORKED");
+
+		}
+		else
+		{
+			int errorCode = GetLastError();
+
+			DBG("IT NO WORKED: " << errorCode);
+		}
+		*/
+	}
+
+
+
     void goToURL (const String& url,
                   const StringArray* headers,
                   const MemoryBlock* postData)
@@ -528,6 +564,12 @@ void WebBrowserComponent::goToURL (const String& url,
         checkWindowAssociation();
 
     browser->goToURL (url, headers, postData);
+}
+
+void WebBrowserComponent::deleteCookie(const String& domain,
+	const String& name)
+{
+	browser->deleteCookie(domain, name);
 }
 
 void WebBrowserComponent::setUserAgent(const String& userAgent, bool append)
