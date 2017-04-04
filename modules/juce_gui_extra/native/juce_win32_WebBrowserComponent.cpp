@@ -133,7 +133,7 @@ public:
 			//used = handleKeyUpOrDown(true);
 			//used = handleKeyPress(extendedKeyModifier | (int)key, 0) || used;
 			//SendMessage(target, WM_KEYDOWN, (WPARAM)key, 0);
-			//used = true;
+			used = true;
 			break;
 
 		default:
