@@ -223,7 +223,32 @@ public:
 
         setView (nil);
     }
-
+    
+    String getCookie (const String& domain, const String& name)
+    {
+        NSHTTPCookieStorage* cookies = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+        NSArray *allCookies = [cookies cookies];
+        NSHTTPCookie *foundCookie = nil;
+        
+        for(NSHTTPCookie *cookie in allCookies)
+        {
+            if ([cookie.domain isEqualToString:juceStringToNS(domain)] && [cookie.name isEqualToString:juceStringToNS(name)])
+            {
+                //[cookies deleteCookie:cookie];
+                foundCookie = cookie;
+                break;
+            }
+        }
+        
+        if (foundCookie == nil)
+        {
+            return "";
+        }
+        else
+        {
+            return nsStringToJuce(foundCookie.value);
+        }
+    }
     
     void deleteCookie (const String& domain, const String& name)
     {
@@ -238,6 +263,17 @@ public:
                 cookieFound = true;
             }
         }
+    }
+    
+    void loadHTML (const String& html, const String& baseURL)
+    {
+        stop();
+        
+        NSString* htmlString = juceStringToNS (html);
+        NSString* baseURLString = juceStringToNS (baseURL);
+        NSURL* base = [[NSURL alloc] initWithString:baseURLString];
+        
+        [[webView mainFrame] loadHTMLString:htmlString baseURL:base];
     }
     
     void goToURL (const String& url,
@@ -283,7 +319,7 @@ public:
                        forHTTPHeaderField: juceStringToNS (headerName)];
                 }
             }
-
+            
            #if JUCE_MAC
             [[webView mainFrame] loadRequest: r];
            #else
@@ -375,6 +411,16 @@ void WebBrowserComponent::goToURL (const String& url,
     blankPageShown = false;
 
     browser->goToURL (url, headers, postData);
+}
+    
+void WebBrowserComponent::loadHTML (const String& html, const String& baseURL)
+{
+    browser->loadHTML(html, baseURL);
+}
+    
+String WebBrowserComponent::getCookie (const String& domain, const String& name)
+{
+    return browser->getCookie(domain, name);
 }
     
 void WebBrowserComponent::deleteCookie(const String& domain, const String& name)

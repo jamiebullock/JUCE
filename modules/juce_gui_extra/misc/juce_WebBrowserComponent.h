@@ -68,6 +68,10 @@ public:
                   const StringArray* headers = nullptr,
                   const MemoryBlock* postData = nullptr);
 
+    void loadHTML (const String& html, const String& baseURL);
+
+    String getCookie (const String& domain, const String& name);
+
     
     /** Deletes a cookie matching the given domain and name 
      
