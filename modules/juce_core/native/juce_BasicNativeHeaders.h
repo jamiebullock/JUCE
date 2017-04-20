@@ -150,6 +150,10 @@
  #include <shlwapi.h>
  #include <mmsystem.h>
 
+#include <mshtml.h>
+#include <comdef.h>
+#include <atlbase.h>
+
  #if JUCE_MINGW
   #include <basetyps.h>
   #include <sys/time.h>

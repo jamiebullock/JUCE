@@ -25,6 +25,158 @@
 
 
 
+/*
+class CHTMLWriter
+{
+protected:
+	IWebBrowser2 * m_pWB;
+	::IDispatch * m_pDoc;
+	bool m_bReleaseIWebBrowserPtr;
+
+public:
+	CHTMLWriter(IWebBrowser2 * pWB)
+	{
+		m_bReleaseIWebBrowserPtr = false;
+		m_pDoc = NULL;
+		m_pWB = pWB;
+	}
+
+
+	~CHTMLWriter(void)
+	{
+		if (m_pDoc)
+			m_pDoc->Release();
+		if (m_bReleaseIWebBrowserPtr && m_pWB)
+			m_pWB->Release();
+	}
+	bool Write(LPCTSTR pszHTMLContent)
+	{
+		if (!pszHTMLContent)
+			return false;
+		if (!GetDocumentPtr())
+			return false;
+
+		IStream * pStream = NULL;
+		IPersistStreamInit * pPSI = NULL;
+		HGLOBAL hHTMLContent;
+		HRESULT hr;
+		bool bResult = false;
+
+		// allocate global memory to copy the HTML content to
+		hHTMLContent = ::GlobalAlloc(GPTR, (::_tcslen(pszHTMLContent) + 1) * sizeof(TCHAR));
+		if (!hHTMLContent)
+			return false;
+
+		::_tcscpy((TCHAR *)hHTMLContent, pszHTMLContent);
+
+		// create a stream object based on the HTML content
+		hr = ::CreateStreamOnHGlobal(hHTMLContent, TRUE, &pStream);
+		if (SUCCEEDED(hr))
+		{
+			// request the IPersistStreamInit interface
+			hr = m_pDoc->QueryInterface(IID_IPersistStreamInit, (void **)&pPSI);
+
+			if (SUCCEEDED(hr))
+			{
+				// initialize the persist stream object
+				hr = pPSI->InitNew();
+
+				if (SUCCEEDED(hr))
+				{
+					// load the data into it
+					hr = pPSI->Load(pStream);
+
+					if (SUCCEEDED(hr))
+						bResult = true;
+				}
+
+				pPSI->Release();
+			}
+
+			// implicitly calls ::GlobalFree to free the global memory
+			pStream->Release();
+		}
+
+		return bResult;
+	}
+	bool Add(LPCTSTR pszHTMLContent)
+	{
+		if (!pszHTMLContent)
+			return false;
+		if (!GetDocumentPtr())
+			return false;
+
+		IHTMLDocument2 * pHTMLDoc = NULL;
+		::IHTMLElement * pElem = NULL;
+		HRESULT hr;
+		bool bResult = false;
+
+		// get an interface to the document object
+		hr = m_pDoc->QueryInterface(IID_IHTMLDocument2, (void **)&pHTMLDoc);
+
+		if (SUCCEEDED(hr))
+		{
+			// get the body element of the document
+			hr = pHTMLDoc->get_body(&pElem);
+
+			if (SUCCEEDED(hr))
+			{
+				// retrieve all the HTML content of the body object
+				BSTR bstr;
+				hr = pElem->get_innerHTML(&bstr);
+
+				if (SUCCEEDED(hr))
+				{
+					// append the desired content to the HTML content of the document
+					_bstr_t bstrContent(bstr);
+					bstrContent += pszHTMLContent;
+
+					// set the new HTML content of the document
+					hr = pElem->put_innerHTML(bstrContent);
+
+					if (SUCCEEDED(hr))
+						bResult = true;
+
+					::SysFreeString(bstr);
+				}
+
+				pElem->Release();
+			}
+
+			pHTMLDoc->Release();
+		}
+		return bResult;
+
+	}
+
+private:
+	CHTMLWriter(void) {};
+	bool GetDocumentPtr(void)
+	{
+		if (!m_pWB)
+			return false;
+		if (m_pDoc)
+		{
+			m_pDoc->Release();
+			m_pDoc = NULL;
+		}
+
+		IDispatch * pDisp = NULL;
+		HRESULT hr;
+
+		// get the document's IDispatch*
+		hr = m_pWB->get_Document(&pDisp);
+		if (SUCCEEDED(hr))
+		{
+			m_pDoc = pDisp;
+			return true;
+		}
+		else
+			return false;
+	}
+};
+*/
+
 JUCE_COMCLASS (DWebBrowserEvents2,        "34A715A0-6587-11D0-924A-0020AFC7AC4D")
 JUCE_COMCLASS (IConnectionPointContainer, "B196B284-BAB4-101A-B69C-00AA00341D07")
 JUCE_COMCLASS (IWebBrowser2,              "D30C1661-CDAF-11D0-8A3E-00C04FC9E26E")
@@ -383,7 +535,51 @@ public:
 		*/
 	}
 
+	void loadHTML(const String& jhtml, const String& baseURL)
+	{
 
+		String before = jhtml.upToFirstOccurrenceOf("<head>", true, false);
+		String after = jhtml.fromFirstOccurrenceOf("<head>", false, false);
+
+		String modHTML = before + "<base href=\"" + baseURL + "\">" + after;
+		
+		const wchar_t* html = modHTML.toWideCharPointer();
+		IDispatch* pHtmlDoc = NULL;
+		HRESULT hr;
+		hr = browser->get_Document(&pHtmlDoc);
+		if (!pHtmlDoc)
+			return;
+		CComPtr<IHTMLDocument2> doc2;
+		doc2.Attach((IHTMLDocument2*)pHtmlDoc);
+		if (!doc2)
+			return;
+		// Creates a new one-dimensional array
+		SAFEARRAY* psaStrings = SafeArrayCreateVector(VT_VARIANT, 0, 1);
+		if (!psaStrings)
+			return;
+		BSTR bstr = SysAllocString(html);
+		if (bstr)
+		{
+			::VARIANT* param;
+			HRESULT hr = SafeArrayAccessData(psaStrings, (LPVOID*)&param);
+			if (SUCCEEDED(hr))
+			{
+				param->vt = VT_BSTR;
+				param->bstrVal = bstr;
+				hr = SafeArrayUnaccessData(psaStrings);
+				if (SUCCEEDED(hr))
+				{
+					doc2->put_URL(CComBSTR(L"https://app.noiiz.com"));
+					doc2->write(psaStrings);
+					doc2->close();
+				}
+			}
+		}
+		// SafeArrayDestroy calls SysFreeString for each BSTR!
+		if (psaStrings)
+			SafeArrayDestroy(psaStrings);
+	}
+	
 
     void goToURL (const String& url,
                   const StringArray* headers,
@@ -564,6 +760,11 @@ void WebBrowserComponent::goToURL (const String& url,
         checkWindowAssociation();
 
     browser->goToURL (url, headers, postData);
+}
+
+void WebBrowserComponent::loadHTML(const String& jhtml, const String& baseURL)
+{
+	browser->loadHTML(jhtml, baseURL);
 }
 
 void WebBrowserComponent::deleteCookie(const String& domain,
