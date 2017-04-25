@@ -126,39 +126,28 @@ private:
 
 @implementation MyWebView
 
-- (instancetype)init
+- (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    self = [super init];
-    if (self) {
-       // [self setNeedsDisplay:YES];
-    }
-    return self;
-}
-
--(void)keyDown:(NSEvent *)event
-{
-    SEL selector = nil;
-    
-    switch ([event keyCode])
+    if (([event modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
     {
-        case 7:
-            selector = @selector(cut:);
-            break;
-        case 8:
-            selector = @selector(copy:);
-            break;
-        case 9:
-            selector = @selector(paste:);
-            break;
-            
-        default:
-            break;
+        if ([[event charactersIgnoringModifiers] isEqualToString:@"x"])
+        {
+            return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
+        }
+        else if ([[event charactersIgnoringModifiers] isEqualToString:@"c"])
+        {
+            return [NSApp sendAction:@selector(copy:) to:[[self window] firstResponder] from:self];
+        }
+        else if ([[event charactersIgnoringModifiers] isEqualToString:@"v"])
+        {
+            return [NSApp sendAction:@selector(paste:) to:[[self window] firstResponder] from:self];
+        }
+        else if ([[event charactersIgnoringModifiers] isEqualToString:@"a"])
+        {
+            return [NSApp sendAction:@selector(selectAll:) to:[[self window] firstResponder] from:self];
+        }
     }
-    
-    if (selector != nil)
-    {
-        [[NSApplication sharedApplication] sendAction:selector to:nil from:self];
-    }
+    return [super performKeyEquivalent:event];
 }
 
 @end
