@@ -24,6 +24,12 @@
 
 #if JUCE_MAC
 
+
+
+
+
+
+
 struct DownloadClickDetectorClass  : public ObjCClass<NSObject>
 {
     DownloadClickDetectorClass()  : ObjCClass<NSObject> ("JUCEWebClickDetector_")
@@ -110,9 +116,58 @@ private:
     }
 };
 
-#else
 
 } // (juce namespace)
+
+@interface MyWebView : WebView
+{
+}
+@end
+
+@implementation MyWebView
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+       // [self setNeedsDisplay:YES];
+    }
+    return self;
+}
+
+-(void)keyDown:(NSEvent *)event
+{
+    SEL selector = nil;
+    
+    switch ([event keyCode])
+    {
+        case 7:
+            selector = @selector(cut:);
+            break;
+        case 8:
+            selector = @selector(copy:);
+            break;
+        case 9:
+            selector = @selector(paste:);
+            break;
+            
+        default:
+            break;
+    }
+    
+    if (selector != nil)
+    {
+        [[NSApplication sharedApplication] sendAction:selector to:nil from:self];
+    }
+}
+
+@end
+
+namespace juce {
+
+#else
+
+
 
 //==============================================================================
 @interface WebViewTapDetector  : NSObject<UIGestureRecognizerDelegate>
@@ -184,7 +239,7 @@ public:
     Pimpl (WebBrowserComponent* owner)
     {
        #if JUCE_MAC
-        webView = [[WebView alloc] initWithFrame: NSMakeRect (0, 0, 100.0f, 100.0f)
+        webView = [[MyWebView alloc] initWithFrame: NSMakeRect (0, 0, 100.0f, 100.0f)
                                        frameName: nsEmptyString()
                                        groupName: nsEmptyString()];
         setView (webView);
@@ -195,6 +250,7 @@ public:
         [webView setPolicyDelegate: clickListener];
         [webView setFrameLoadDelegate: clickListener];
         [webView setUIDelegate: clickListener];
+        
        #else
         webView = [[UIWebView alloc] initWithFrame: CGRectMake (0, 0, 1.0f, 1.0f)];
         setView (webView);
