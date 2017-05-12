@@ -239,6 +239,7 @@ public:
         [webView setPolicyDelegate: clickListener];
         [webView setFrameLoadDelegate: clickListener];
         [webView setUIDelegate: clickListener];
+        webView.drawsBackground = NO;
         
        #else
         webView = [[UIWebView alloc] initWithFrame: CGRectMake (0, 0, 1.0f, 1.0f)];
