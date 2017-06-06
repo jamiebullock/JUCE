@@ -126,6 +126,9 @@ public:
      */
     virtual void newWindowAttemptingToLoad (const String& newURL);
 
+	void setBrowserHidden(bool hidden);
+
+
     //==============================================================================
     /** @internal */
     void paint (Graphics&) override;
@@ -143,6 +146,7 @@ private:
     class Pimpl;
     Pimpl* browser;
     bool blankPageShown, unloadPageWhenBrowserIsHidden;
+	bool browserIsHidden;
     String lastURL;
     StringArray lastHeaders;
     MemoryBlock lastPostData;

@@ -464,6 +464,10 @@ public:
 		return CallNextHookEx(keyboardHook2, nCode, wParam, lParam);
 	}
 
+	
+
+	
+
     void createBrowser()
     {
         CLSID webCLSID = __uuidof (WebBrowser);
@@ -476,7 +480,12 @@ public:
 		sBrowser = browser;
 		sThis = this;
 		
+		// Prevent browser from showing popup dialogs
 		browser->put_Silent(VARIANT_TRUE);
+
+		WebBrowserComponent* const owner = dynamic_cast<WebBrowserComponent*> (getParentComponent());
+		owner->setBrowserHidden(true);
+
 
         if (IConnectionPointContainer* connectionPointContainer
             = (IConnectionPointContainer*) queryInterface (&iidConnectionPointContainer))
@@ -683,7 +692,8 @@ private:
 
             if (dispIdMember == DISPID_DOCUMENTCOMPLETE)
             {
-                owner.pageFinishedLoading (getStringFromVariant (pDispParams->rgvarg[0].pvarVal));
+				owner.setBrowserHidden(false);
+				owner.pageFinishedLoading (getStringFromVariant (pDispParams->rgvarg[0].pvarVal));
                 return S_OK;
             }
 
@@ -727,7 +737,8 @@ ActiveXControlComponent *WebBrowserComponent::Pimpl::sThis = nullptr;
 WebBrowserComponent::WebBrowserComponent (const bool unloadPageWhenBrowserIsHidden_)
     : browser (nullptr),
       blankPageShown (false),
-      unloadPageWhenBrowserIsHidden (unloadPageWhenBrowserIsHidden_)
+      unloadPageWhenBrowserIsHidden (unloadPageWhenBrowserIsHidden_),
+	browserIsHidden(false)
 {
     setOpaque (true);
     addAndMakeVisible (browser = new Pimpl());
@@ -870,6 +881,48 @@ void WebBrowserComponent::visibilityChanged()
 {
     checkWindowAssociation();
 }
+
+void WebBrowserComponent::setBrowserHidden(bool hidden)
+{
+	if (hidden && browserIsHidden || !hidden && !browserIsHidden) return;
+
+
+	HWND hwnd;
+
+	GUID iidOleObject = __uuidof (IOleObject);
+	GUID iidOleWindow = __uuidof (IOleWindow);
+
+	if (IOleObject* oleObject = (IOleObject*)browser->queryInterface(&iidOleObject))
+	{
+		if (IOleWindow* oleWindow = (IOleWindow*)browser->queryInterface(&iidOleWindow))
+		{
+			IOleClientSite* oleClientSite = nullptr;
+
+			if (SUCCEEDED(oleObject->GetClientSite(&oleClientSite)))
+			{
+				HWND hwnd;
+				oleWindow->GetWindow(&hwnd);
+
+				if (hidden)
+				{
+					ShowWindow(hwnd, SW_HIDE);
+					browserIsHidden = true;
+				}
+				else
+				{
+					ShowWindow(hwnd, SW_SHOW);
+					browserIsHidden = false;
+				}
+				oleClientSite->Release();
+			}
+
+			oleWindow->Release();
+		}
+
+		oleObject->Release();
+	}
+}
+
 
 void WebBrowserComponent::focusGained (FocusChangeType)
 {
