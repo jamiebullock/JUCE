@@ -549,6 +549,12 @@ void WebBrowserComponent::resized()
     browser->setSize (getWidth(), getHeight());
 }
 
+void WebBrowserComponent::setBrowserHidden(bool hidden)
+{
+    (void)hidden;
+    std::cout << "Function not implemented " << __FUNCTION__ << std::endl;
+}
+    
 void WebBrowserComponent::visibilityChanged()
 {
     checkWindowAssociation();
