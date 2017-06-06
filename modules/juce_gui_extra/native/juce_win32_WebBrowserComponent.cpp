@@ -544,6 +544,7 @@ public:
 		String modHTML = before + "<base href=\"" + baseURL + "\">" + after;
 		
 		const wchar_t* html = modHTML.toWideCharPointer();
+		const wchar_t* baseURL_ = baseURL.toWideCharPointer();
 		IDispatch* pHtmlDoc = NULL;
 		HRESULT hr;
 		hr = browser->get_Document(&pHtmlDoc);
@@ -569,7 +570,7 @@ public:
 				hr = SafeArrayUnaccessData(psaStrings);
 				if (SUCCEEDED(hr))
 				{
-					doc2->put_URL(CComBSTR(L"https://app.noiiz.com"));
+					doc2->put_URL(CComBSTR(baseURL_));
 					doc2->write(psaStrings);
 					doc2->close();
 				}
