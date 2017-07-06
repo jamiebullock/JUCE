@@ -322,6 +322,11 @@ public:
         [[webView mainFrame] loadHTMLString:htmlString baseURL:base];
     }
     
+    String getCurrentURL()
+    {
+        return nsStringToJuce([[[[[webView mainFrame] dataSource] request] URL] absoluteString]);
+    }
+    
     void goToURL (const String& url,
                   const StringArray* headers,
                   const MemoryBlock* postData)
@@ -537,6 +542,11 @@ void WebBrowserComponent::reloadLastURL()
         goToURL (lastURL, &lastHeaders, &lastPostData);
         lastURL.clear();
     }
+}
+    
+String WebBrowserComponent::getCurrentURL()
+{
+    return browser->getCurrentURL();
 }
 
 void WebBrowserComponent::parentHierarchyChanged()
