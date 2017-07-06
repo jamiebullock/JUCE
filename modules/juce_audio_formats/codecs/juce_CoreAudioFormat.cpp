@@ -422,9 +422,12 @@ public:
             lastReadPosition = startSampleInFile;
         }
 
+        // int blockSize = numSamples >= 8192 ? 8192 : pow(2,floor(log(numSamples)/log(2)));
+        int blockSize = 512;
+        
         while (numSamples > 0)
         {
-            const int numThisTime = jmin (8192, numSamples);
+            const int numThisTime = jmin (blockSize, numSamples);
             const size_t numBytes = sizeof (float) * (size_t) numThisTime;
 
             audioDataBlock.ensureSize (numBytes * numChannels, false);
