@@ -858,6 +858,17 @@ void WebBrowserComponent::checkWindowAssociation()
     }
 }
 
+String WebBrowserComponent::getCurrentURL()
+{
+	BSTR url_buffer;
+
+	HRESULT result = browser->browser->get_LocationURL(&url_buffer);
+	//std::wstring ws(url_buffer, SysStringLen(url_buffer));
+
+
+	return String(url_buffer);
+}
+
 void WebBrowserComponent::reloadLastURL()
 {
     if (lastURL.isNotEmpty())

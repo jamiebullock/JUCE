@@ -127,6 +127,7 @@ public:
     virtual void newWindowAttemptingToLoad (const String& newURL);
 
 	void setBrowserHidden(bool hidden);
+	String getCurrentURL();
 
 
     //==============================================================================
